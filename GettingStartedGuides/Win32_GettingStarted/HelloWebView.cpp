@@ -188,15 +188,17 @@ int CALLBACK WinMain(
 										LPWSTR uri;
 										args->get_Uri(&uri);
 										wchar_t const* prefix = L"about:blank";
+
 										if (wcslen(uri) && wcsncmp(uri, prefix, wcslen(prefix)) != 0)
 										{
 											args->put_Handled(FALSE);
 											return S_OK;
 										}
 
-										wil::com_ptr<ICoreWebView2NewWindowRequestedEventArgs> eventArgs;
-										eventArgs = args;
 										wil::com_ptr<ICoreWebView2Deferral> deferral;
+										wil::com_ptr<ICoreWebView2NewWindowRequestedEventArgs> eventArgs;
+
+										eventArgs = args;
 										HRESULT hrOk =  args->GetDeferral(&deferral);
 
 										if (SUCCEEDED(hrOk)) {
@@ -222,8 +224,7 @@ int CALLBACK WinMain(
 												hInst,
 												NULL
 											);
-
-											if (true)
+											if (hWnd)
 											{
 												HRESULT hr = env->CreateCoreWebView2Controller(hWnd,
 													Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(
@@ -246,41 +247,29 @@ int CALLBACK WinMain(
 																	.Get(),
 																			&token);
 
-																//newWebView->add_SourceChanged(
-																//	Callback<IWebView2SourceChangedEventHandler>(
-																//	[](IWebView2WebView* sender, IWebView2SourceChangedEventArgs* args) -> HRESULT {
-																//		return S_OK;
-																//	})
-																//	.Get(),
-																//	nullptr
-																//		);
-																EventRegistrationToken token1;
-
+																EventRegistrationToken sourceChangedToken;
 																newWebView->add_SourceChanged(
 																	Callback<ICoreWebView2SourceChangedEventHandler>(
 																		[hWnd](ICoreWebView2* sender, ICoreWebView2SourceChangedEventArgs* args)
 																		-> HRESULT {
-																			LPWSTR uri;
-																			sender->get_Source(&uri);
 																			PostMessage(hWnd, WM_CLOSE, 0, 0);
 																			return S_OK;
 																		})
 																	.Get(),
-																			&token1);
-
+																			&sourceChangedToken);
 
 																controller->AddRef();
 																SetProp(hWnd, L"Controller", controller);
-
 																controller->put_IsVisible(TRUE);
 																ShowWindow(hWnd, SW_SHOW);
 																deferral->Complete();
+
 																return S_OK;
 															}
 															return S_OK;
 														}).Get());
+												eventArgs->put_Handled(TRUE);
 											}
-											eventArgs->put_Handled(TRUE);
 										}
 										return S_OK;
 								})
